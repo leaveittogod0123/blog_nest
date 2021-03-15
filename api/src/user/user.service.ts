@@ -6,7 +6,7 @@ import { catchError, map, switchMap } from 'rxjs/operators';
 import { AuthService } from 'src/auth/auth.service';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { User } from './user.interface';
+import { User } from './user.dto';
 
 @Injectable()
 export class UserService {
