@@ -1,6 +1,7 @@
-import { Body, Delete, Get, Param, Put } from '@nestjs/common';
+import { Body, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
 import { Controller, Post } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -9,6 +10,9 @@ import {
 import { of } from 'rxjs';
 import { Observable } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { JwtAuthGuard } from 'src/modules/auth/jwt-guard';
+import { hasRoles } from 'src/modules/auth/role.decorator';
+import { RolesGuard } from 'src/modules/auth/roles.guard';
 import { User } from './user.dto';
 import { UserService } from './user.service';
 
@@ -36,7 +40,6 @@ export class UserController {
       map((jwt: string) => {
         return { accessToken: jwt };
       }),
-      catchError((err) => of({ error: err.message })),
     );
   }
 
@@ -48,11 +51,16 @@ export class UserController {
     );
   }
 
+  @ApiBearerAuth()
+  @hasRoles('Admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   @ApiOperation({ summary: '회원 목록 조회 API' })
   @ApiOkResponse({ type: [User] })
-  findAll(): Observable<User[]> {
-    return this.userService.findAll();
+  findAll(): Observable<User[] | any> {
+    return this.userService
+      .findAll()
+      .pipe(catchError((err) => of({ error: err.message })));
   }
 
   @Delete(':id')

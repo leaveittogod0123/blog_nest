@@ -26,11 +26,26 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+# for Backend
+make sure that you should change directory to api
+
 ## Installation
 
 ```bash
-$ npm install
+yarn install
 ```
+
+## Things to do before running the app.
+at the api directory
+```
+docker-compose up -d
+```
+it runs mysql db on Docker background
+
+if port 3307 already used, please kill app which is using port 3307
+
+put any value on .env file
+`JWT_SECRET=<anyvalue>`
 
 ## Running the app
 

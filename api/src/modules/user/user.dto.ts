@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export enum UserRole {
+  ADMIN = 'admin',
+  CHIEFEDITOR = 'chiefeditor',
+  EDITOR = 'editor',
+  USER = 'user',
+}
+
 export class User {
   @ApiProperty({ description: '회원 ID' })
   id?: string;
@@ -11,4 +18,6 @@ export class User {
   email?: string;
   @ApiProperty({ description: '회원 비밀번호' })
   password?: string;
+
+  role?: UserRole;
 }

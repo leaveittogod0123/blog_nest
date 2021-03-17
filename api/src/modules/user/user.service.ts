@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { from, throwError } from 'rxjs';
 import { Observable } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
-import { AuthService } from 'src/auth/auth.service';
+import { AuthService } from 'src/modules/auth/auth.service';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity';
 import { User } from './user.dto';
@@ -63,6 +63,7 @@ export class UserService {
         });
         return users;
       }),
+      catchError((err) => throwError(err)),
     );
   }
 
