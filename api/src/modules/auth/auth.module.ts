@@ -22,11 +22,15 @@ import { UserModule } from 'src/modules/user/user.module';
     }),
   ],
   providers: [
+    ConfigService,
     AuthService,
     JwtAuthGuard,
-    JwtStrategy,
+    // JwtStrategy,
+    {
+      provide: JwtStrategy,
+      useFactory: () => async (configService: ConfigService) => ({}),
+    },
     RolesGuard,
-    ConfigService,
   ],
   exports: [AuthService],
 })

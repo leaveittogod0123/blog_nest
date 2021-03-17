@@ -18,6 +18,11 @@ export class User {
   email?: string;
   @ApiProperty({ description: '회원 비밀번호' })
   password?: string;
+  @ApiProperty({ description: '권한' })
+  role?: UserRole;
+}
 
+export class PatchUserDto {
+  @ApiProperty({ description: '권한' })
   role?: UserRole;
 }

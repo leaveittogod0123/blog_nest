@@ -1,4 +1,12 @@
-import { Body, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { Controller, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -71,5 +79,10 @@ export class UserController {
   @Put(':id')
   updateOne(@Param('id') id: string, @Body() user: User): Observable<any> {
     return this.userService.updateOne(+id, user);
+  }
+
+  @Patch(':id/role')
+  updateRoleOfUser(@Param('id') id: string, @Body() user: User): Promise<User> {
+    return this.userService.updateRoleOfUser(+id, user);
   }
 }
