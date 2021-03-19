@@ -10,7 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { UserService } from 'src/modules/user/user.service';
-import { User } from '../user/user.dto';
+import { UserDto } from '../user/user.dto';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -30,12 +30,12 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const user: User = request.user.user;
+    const user: UserDto = request.user.user;
     this.logger.debug(
       `RolesGuard canActivate works ${JSON.stringify(user)}, roles: ${roles},`,
     );
     return this.userService.findOne(+user.id).pipe(
-      map((user: User) => {
+      map((user: UserDto) => {
         const hasRole = () =>
           roles?.map((role) => role?.toLowerCase()).indexOf(user.role) > -1;
         let hasPermission = false;

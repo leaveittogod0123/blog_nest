@@ -1,31 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { from, throwError } from 'rxjs';
 import { Observable } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { AuthService } from 'src/modules/auth/auth.service';
-import { Repository } from 'typeorm';
-import { UserEntity } from './user.entity';
-import { User } from './user.dto';
+import { getConnection, Repository, Transaction } from 'typeorm';
+import { User } from './user.entity';
+import { PatchUserDto, UserDto, UserRole } from './user.dto';
 
 @Injectable()
 export class UserService {
+  private readonly logger: Logger = new Logger(this.constructor.name);
+
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private authService: AuthService,
   ) {}
 
-  create(user: User): Observable<User> {
+  create(user: UserDto): Observable<UserDto> {
     return this.authService.hashPassword(user.password).pipe(
       switchMap((passwordHash: string) => {
-        const newUser = new UserEntity();
+        const newUser = new User();
         newUser.name = user.name;
         newUser.username = user.username;
         newUser.email = user.email;
         newUser.password = passwordHash;
         return from(this.userRepository.save(newUser)).pipe(
-          map((user: UserEntity) => {
+          map((user: User) => {
             const { id, password, ...rest } = user;
             return {
               id: `${id}`,
@@ -38,9 +40,9 @@ export class UserService {
     );
   }
 
-  findOne(id: number): Observable<User> {
+  findOne(id: number): Observable<UserDto> {
     return from(this.userRepository.findOne(id)).pipe(
-      map((_user: UserEntity) => {
+      map((_user: User) => {
         const { id, password, ...rest } = _user;
         return {
           id: `${id}`,
@@ -51,10 +53,10 @@ export class UserService {
     );
   }
 
-  findAll(): Observable<User[]> {
+  findAll(): Observable<UserDto[]> {
     return from(this.userRepository.find()).pipe(
-      map((_users: UserEntity[]) => {
-        const users = _users.map((user: UserEntity) => {
+      map((_users: User[]) => {
+        const users = _users.map((user: User) => {
           const { id, password, ...rest } = user;
           return {
             id: `${id}`,
@@ -71,16 +73,44 @@ export class UserService {
     return from(this.userRepository.delete(id));
   }
 
-  updateOne(id: number, user: User): Observable<any> {
-    const newUser = new UserEntity();
+  updateOne(id: number, user: UserDto): Observable<any> {
+    const newUser = new User();
     newUser.name = user.name;
     newUser.username = user.username;
     return from(this.userRepository.update(id, newUser));
   }
 
-  login(user: User): Observable<string> {
+  async updateRoleOfUser(id: number, req: PatchUserDto): Promise<any> {
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+    await queryRunner.connect(); // performs connection
+    await queryRunner.startTransaction();
+
+    try {
+      // execute some operations on this transaction:
+      // commit transaction now:
+      await queryRunner.manager
+        .getRepository(User)
+        .createQueryBuilder()
+        .update(User)
+        .set({ ...req, role: UserRole[req.role.toUpperCase()] })
+        .where('id = :id', { id })
+        .execute();
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      // since we have errors let's rollback changes we made
+      await queryRunner.rollbackTransaction();
+      this.logger.error(err);
+    } finally {
+      // you need to release query runner which is manually created:
+      await queryRunner.release();
+    }
+  }
+
+  login(user: UserDto): Observable<string> {
     return this.validateUser(user.email, user.password).pipe(
-      switchMap((user: User) => {
+      switchMap((user: UserDto) => {
         if (user) {
           return this.authService
             .generateJWT(user)
@@ -92,9 +122,9 @@ export class UserService {
     );
   }
 
-  validateUser(email: string, password: string): Observable<User> {
+  validateUser(email: string, password: string): Observable<UserDto> {
     return this.findByMail(email).pipe(
-      switchMap((user: User) =>
+      switchMap((user: UserDto) =>
         this.authService.comparePassword(password, user.password).pipe(
           map((match: boolean) => {
             if (match) {
@@ -108,9 +138,9 @@ export class UserService {
     );
   }
 
-  findByMail(email: string): Observable<User> {
+  findByMail(email: string): Observable<UserDto> {
     return from(this.userRepository.findOne({ email })).pipe(
-      map((_user: UserEntity) => {
+      map((_user: User) => {
         const { id, ...rest } = _user;
         return {
           id: `${id}`,
