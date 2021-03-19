@@ -7,7 +7,7 @@ export enum UserRole {
   USER = 'user',
 }
 
-export class User {
+export class UserDto {
   @ApiProperty({ description: '회원 ID' })
   id?: string;
   @ApiProperty({ description: '회원 닉넴' })

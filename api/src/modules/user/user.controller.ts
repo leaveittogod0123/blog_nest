@@ -21,7 +21,7 @@ import { catchError, map } from 'rxjs/operators';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-guard';
 import { hasRoles } from 'src/modules/auth/role.decorator';
 import { RolesGuard } from 'src/modules/auth/roles.guard';
-import { User } from './user.dto';
+import { UserDto, UserRole } from './user.dto';
 import { UserService } from './user.service';
 
 @Controller('users')
@@ -32,9 +32,9 @@ export class UserController {
   @ApiCreatedResponse({
     description: 'add User',
   })
-  create(@Body() user: User): Observable<User | any> {
+  create(@Body() user: UserDto): Observable<UserDto | any> {
     return this.userService.create(user).pipe(
-      map((user: User) => user),
+      map((user: UserDto) => user),
       catchError((err) => of({ error: err.message })),
     );
   }
@@ -43,7 +43,7 @@ export class UserController {
   @ApiOperation({ summary: '회원 로그인 API' })
   @ApiOkResponse({ description: 'User login' })
   @ApiUnauthorizedResponse({ description: 'Invalid crendentials' })
-  login(@Body() user: User): Observable<any> {
+  login(@Body() user: UserDto): Observable<any> {
     return this.userService.login(user).pipe(
       map((jwt: string) => {
         return { accessToken: jwt };
@@ -52,37 +52,43 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param() params): Observable<User | any> {
+  findOne(@Param() params): Observable<UserDto | any> {
     return this.userService.findOne(+params.id).pipe(
-      map((user: User) => user),
+      map((user: UserDto) => user),
       catchError((err) => of({ error: err.message })),
     );
   }
 
   @ApiBearerAuth()
-  @hasRoles('Admin')
+  @hasRoles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   @ApiOperation({ summary: '회원 목록 조회 API' })
-  @ApiOkResponse({ type: [User] })
-  findAll(): Observable<User[] | any> {
+  @ApiOkResponse({ type: [UserDto] })
+  findAll(): Observable<UserDto[] | any> {
     return this.userService
       .findAll()
       .pipe(catchError((err) => of({ error: err.message })));
   }
 
   @Delete(':id')
-  deleteOne(@Param('id') id: string): Observable<User> {
+  deleteOne(@Param('id') id: string): Observable<UserDto> {
     return this.userService.deleteOne(+id);
   }
 
   @Put(':id')
-  updateOne(@Param('id') id: string, @Body() user: User): Observable<any> {
+  updateOne(@Param('id') id: string, @Body() user: UserDto): Observable<any> {
     return this.userService.updateOne(+id, user);
   }
 
+  @ApiBearerAuth()
+  @hasRoles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id/role')
-  updateRoleOfUser(@Param('id') id: string, @Body() user: User): Promise<User> {
+  updateRoleOfUser(
+    @Param('id') id: string,
+    @Body() user: UserDto,
+  ): Promise<UserDto> {
     return this.userService.updateRoleOfUser(+id, user);
   }
 }
