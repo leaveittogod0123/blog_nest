@@ -7,7 +7,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import * as ormConfig from '../ormconfig';
 
 @Module({
-  imports: [TypeOrmModule.forRoot(ormConfig[0]), UserModule, AuthModule],
+  imports: [TypeOrmModule.forRoot(ormConfig[0]), AuthModule, UserModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { from, throwError } from 'rxjs';
+import { from, identity, throwError } from 'rxjs';
 import { Observable } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { getConnection, Repository, Transaction } from 'typeorm';
 import { User } from './user.entity';
@@ -18,26 +18,56 @@ export class UserService {
     private authService: AuthService,
   ) {}
 
-  create(user: UserDto): Observable<UserDto> {
-    return this.authService.hashPassword(user.password).pipe(
-      switchMap((passwordHash: string) => {
-        const newUser = new User();
-        newUser.name = user.name;
-        newUser.username = user.username;
-        newUser.email = user.email;
-        newUser.password = passwordHash;
-        return from(this.userRepository.save(newUser)).pipe(
-          map((user: User) => {
-            const { id, password, ...rest } = user;
-            return {
-              id: `${id}`,
-              ...rest,
-            };
-          }),
-          catchError((err) => throwError(err)),
-        );
-      }),
-    );
+  async create(user: UserDto): Promise<UserDto> {
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+    await queryRunner.connect(); // performs connection
+    await queryRunner.startTransaction();
+
+    // rxjs로 구현하고싶은데 몰라서 async await 으로 구현
+
+    const isDuplicate: boolean = await this.findByName(user.username);
+
+    if (isDuplicate) {
+      throw Error('AnError');
+    }
+
+    const passwordHash: string = await this.authService
+      .hashPassword(user.password)
+      .toPromise();
+
+    const newUser = new User();
+    newUser.name = user.name;
+    newUser.username = user.username;
+    newUser.email = user.email;
+    newUser.password = passwordHash;
+
+    let savedUser: UserDto;
+
+    try {
+      const { id, password, ...rest }: User = await this.userRepository.save(
+        newUser,
+      );
+      savedUser = {
+        id: `${id}`,
+        ...rest,
+      };
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(err);
+      throw Error(err);
+    } finally {
+      await queryRunner.release();
+    }
+
+    return savedUser;
+  }
+
+  async findByName(username: string): Promise<boolean> {
+    const user: User = await this.userRepository.findOne(username);
+    return !!user;
   }
 
   findOne(id: number): Observable<UserDto> {
@@ -124,8 +154,8 @@ export class UserService {
 
   validateUser(email: string, password: string): Observable<UserDto> {
     return this.findByMail(email).pipe(
-      switchMap((user: UserDto) =>
-        this.authService.comparePassword(password, user.password).pipe(
+      switchMap((user: UserDto) => {
+        return this.authService.comparePassword(password, user.password).pipe(
           map((match: boolean) => {
             if (match) {
               return user;
@@ -133,8 +163,8 @@ export class UserService {
               throw Error;
             }
           }),
-        ),
-      ),
+        );
+      }),
     );
   }
 

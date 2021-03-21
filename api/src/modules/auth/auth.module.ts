@@ -9,11 +9,12 @@ import { UserModule } from 'src/modules/user/user.module';
 
 @Module({
   imports: [
+    ConfigModule,
     forwardRef(() => UserModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
         signOptions: {
           expiresIn: '3600s',
@@ -22,13 +23,15 @@ import { UserModule } from 'src/modules/user/user.module';
     }),
   ],
   providers: [
-    ConfigService,
     AuthService,
     JwtAuthGuard,
-    // JwtStrategy,
+    JwtStrategy,
     {
       provide: JwtStrategy,
-      useFactory: () => async (configService: ConfigService) => ({}),
+      useFactory: () => async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+      }),
+      inject: [ConfigService],
     },
     RolesGuard,
   ],

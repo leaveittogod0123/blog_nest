@@ -2,6 +2,7 @@ import {
   Body,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Put,
@@ -26,17 +27,16 @@ import { UserService } from './user.service';
 
 @Controller('users')
 export class UserController {
+  private readonly logger: Logger = new Logger(this.constructor.name);
+
   constructor(private userService: UserService) {}
 
   @Post()
   @ApiCreatedResponse({
     description: 'add User',
   })
-  create(@Body() user: UserDto): Observable<UserDto | any> {
-    return this.userService.create(user).pipe(
-      map((user: UserDto) => user),
-      catchError((err) => of({ error: err.message })),
-    );
+  create(@Body() user: UserDto): Promise<UserDto> {
+    return this.userService.create(user);
   }
 
   @Post('login')
