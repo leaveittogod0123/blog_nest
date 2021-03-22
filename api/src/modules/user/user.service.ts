@@ -6,7 +6,13 @@ import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { getConnection, Repository, Transaction } from 'typeorm';
 import { User } from './user.entity';
-import { PatchUserDto, UserDto, UserRole } from './user.dto';
+import {
+  PaginationDto,
+  PatchUserDto,
+  RequestUserDto,
+  ResponseUserDto,
+  UserRole,
+} from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -18,7 +24,7 @@ export class UserService {
     private authService: AuthService,
   ) {}
 
-  async create(user: UserDto): Promise<UserDto> {
+  async create(user: RequestUserDto): Promise<ResponseUserDto> {
     const connection = getConnection();
     const queryRunner = connection.createQueryRunner();
     await queryRunner.connect(); // performs connection
@@ -42,7 +48,7 @@ export class UserService {
     newUser.email = user.email;
     newUser.password = passwordHash;
 
-    let savedUser: UserDto;
+    let savedUser: ResponseUserDto;
 
     try {
       const { id, password, ...rest }: User = await this.userRepository.save(
@@ -70,7 +76,7 @@ export class UserService {
     return !!user;
   }
 
-  findOne(id: number): Observable<UserDto> {
+  findOne(id: number): Observable<ResponseUserDto> {
     return from(this.userRepository.findOne(id)).pipe(
       map((_user: User) => {
         const { id, password, ...rest } = _user;
@@ -83,27 +89,52 @@ export class UserService {
     );
   }
 
-  findAll(): Observable<UserDto[]> {
-    return from(this.userRepository.find()).pipe(
-      map((_users: User[]) => {
-        const users = _users.map((user: User) => {
-          const { id, password, ...rest } = user;
-          return {
-            id: `${id}`,
-            ...rest,
-          };
-        });
-        return users;
-      }),
-      catchError((err) => throwError(err)),
-    );
+  async findAll(cursor?): Promise<PaginationDto> {
+    const connection = getConnection();
+    const queryRunner = connection.createQueryRunner();
+    const conditions: string[] = [];
+    if (cursor) {
+      conditions.push(
+        `AND CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) >= '${cursor}'`,
+      );
+    }
+
+    const query = `SELECT id, name, username, email, role, CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) as custom_cursor
+    FROM user WHERE 1=1 ${conditions.join()}
+    LIMIT 3`;
+    try {
+      const result = await queryRunner.query(query);
+      const users = result.map((user: User) => {
+        const { id, ...rest } = user;
+        return {
+          id: `${id}`,
+          ...rest,
+        };
+      });
+      const beforeCursor = users[0]?.custom_cursor || null;
+      const nextCursor = users[users.length - 1]?.custom_cursor || null;
+      const paginationDto: PaginationDto = new PaginationDto();
+      paginationDto.data = users;
+      paginationDto.paging = {
+        cursor: {
+          after: nextCursor,
+          before: beforeCursor,
+        },
+      };
+      // paginationDto.paging.cursor.after = nextCursor;
+      // paginationDto.paging.cursor.before = beforeCursor;
+      // console.log(paginationDto);
+      return paginationDto;
+    } catch (error) {
+      throw Error('findAll() failed');
+    }
   }
 
   deleteOne(id: number): Observable<any> {
     return from(this.userRepository.delete(id));
   }
 
-  updateOne(id: number, user: UserDto): Observable<any> {
+  updateOne(id: number, user: RequestUserDto): Observable<any> {
     const newUser = new User();
     newUser.name = user.name;
     newUser.username = user.username;
@@ -138,9 +169,9 @@ export class UserService {
     }
   }
 
-  login(user: UserDto): Observable<string> {
+  login(user: RequestUserDto): Observable<string> {
     return this.validateUser(user.email, user.password).pipe(
-      switchMap((user: UserDto) => {
+      switchMap((user: ResponseUserDto) => {
         if (user) {
           return this.authService
             .generateJWT(user)
@@ -152,9 +183,9 @@ export class UserService {
     );
   }
 
-  validateUser(email: string, password: string): Observable<UserDto> {
+  validateUser(email: string, password: string): Observable<ResponseUserDto> {
     return this.findByMail(email).pipe(
-      switchMap((user: UserDto) => {
+      switchMap((user: RequestUserDto) => {
         return this.authService.comparePassword(password, user.password).pipe(
           map((match: boolean) => {
             if (match) {
@@ -168,7 +199,7 @@ export class UserService {
     );
   }
 
-  findByMail(email: string): Observable<UserDto> {
+  findByMail(email: string): Observable<ResponseUserDto> {
     return from(this.userRepository.findOne({ email })).pipe(
       map((_user: User) => {
         const { id, ...rest } = _user;

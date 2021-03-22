@@ -11,7 +11,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { UserService } from 'src/modules/user/user.service';
-import { UserDto } from '../user/user.dto';
+import { UserDto } from '../user/dto/user.dto';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

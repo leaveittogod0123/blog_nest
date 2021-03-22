@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { from } from 'rxjs';
 import { Observable } from 'rxjs';
-import { UserDto } from 'src/modules/user/user.dto';
+import { UserDto } from 'src/modules/user/dto/user.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

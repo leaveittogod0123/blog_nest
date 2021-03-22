@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Controller, Post } from '@nestjs/common';
@@ -22,7 +23,12 @@ import { catchError, map } from 'rxjs/operators';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-guard';
 import { hasRoles } from 'src/modules/auth/role.decorator';
 import { RolesGuard } from 'src/modules/auth/roles.guard';
-import { UserDto, UserRole } from './user.dto';
+import {
+  PaginationDto,
+  RequestUserDto,
+  ResponseUserDto,
+  UserRole,
+} from './dto/user.dto';
 import { UserService } from './user.service';
 
 @Controller('users')
@@ -35,7 +41,7 @@ export class UserController {
   @ApiCreatedResponse({
     description: 'add User',
   })
-  create(@Body() user: UserDto): Promise<UserDto> {
+  create(@Body() user: RequestUserDto): Promise<ResponseUserDto> {
     return this.userService.create(user);
   }
 
@@ -43,7 +49,7 @@ export class UserController {
   @ApiOperation({ summary: '회원 로그인 API' })
   @ApiOkResponse({ description: 'User login' })
   @ApiUnauthorizedResponse({ description: 'Invalid crendentials' })
-  login(@Body() user: UserDto): Observable<any> {
+  login(@Body() user: RequestUserDto): Observable<any> {
     return this.userService.login(user).pipe(
       map((jwt: string) => {
         return { accessToken: jwt };
@@ -52,32 +58,34 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param() params): Observable<UserDto | any> {
+  findOne(@Param() params): Observable<ResponseUserDto | any> {
     return this.userService.findOne(+params.id).pipe(
-      map((user: UserDto) => user),
+      map((user: ResponseUserDto) => user),
       catchError((err) => of({ error: err.message })),
     );
   }
 
   @Get()
   @ApiOperation({ summary: '회원 목록 조회 API' })
-  @ApiOkResponse({ type: [UserDto] })
-  findAll(): Observable<UserDto[] | any> {
-    return this.userService
-      .findAll()
-      .pipe(catchError((err) => of({ error: err.message })));
+  @ApiOkResponse({ type: [PaginationDto] })
+  findAll(@Query() queryParam): Promise<PaginationDto | any> {
+    return this.userService.findAll(queryParam?.cursor);
+    // .pipe(catchError((err) => of({ error: err.message })));
   }
 
   @ApiBearerAuth()
   @hasRoles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
-  deleteOne(@Param('id') id: string): Observable<UserDto> {
+  deleteOne(@Param('id') id: string): Observable<ResponseUserDto> {
     return this.userService.deleteOne(+id);
   }
 
   @Put(':id')
-  updateOne(@Param('id') id: string, @Body() user: UserDto): Observable<any> {
+  updateOne(
+    @Param('id') id: string,
+    @Body() user: RequestUserDto,
+  ): Observable<any> {
     return this.userService.updateOne(+id, user);
   }
 
@@ -87,8 +95,8 @@ export class UserController {
   @Patch(':id/role')
   updateRoleOfUser(
     @Param('id') id: string,
-    @Body() user: UserDto,
-  ): Promise<UserDto> {
+    @Body() user: RequestUserDto,
+  ): Promise<ResponseUserDto> {
     return this.userService.updateRoleOfUser(+id, user);
   }
 }
