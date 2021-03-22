@@ -59,9 +59,6 @@ export class UserController {
     );
   }
 
-  @ApiBearerAuth()
-  @hasRoles(UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   @ApiOperation({ summary: '회원 목록 조회 API' })
   @ApiOkResponse({ type: [UserDto] })
@@ -71,6 +68,9 @@ export class UserController {
       .pipe(catchError((err) => of({ error: err.message })));
   }
 
+  @ApiBearerAuth()
+  @hasRoles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   deleteOne(@Param('id') id: string): Observable<UserDto> {
     return this.userService.deleteOne(+id);

@@ -6,7 +6,7 @@ import { AllExceptionsFilter } from './filters/exception/all-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // app.useGlobalFilters(new AllExceptionsFilter());
 
   const options = new DocumentBuilder()
     .setTitle('blog_nest API')

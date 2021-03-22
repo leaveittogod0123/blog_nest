@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable, throwError } from 'rxjs';
@@ -31,9 +32,9 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user: UserDto = request.user.user;
-    this.logger.debug(
-      `RolesGuard canActivate works ${JSON.stringify(user)}, roles: ${roles},`,
-    );
+    // this.logger.debug(
+    //   `RolesGuard canActivate works ${JSON.stringify(user)}, roles: ${roles},`,
+    // );
     return this.userService.findOne(+user.id).pipe(
       map((user: UserDto) => {
         const hasRole = () =>
@@ -45,7 +46,9 @@ export class RolesGuard implements CanActivate {
         }
         return user && hasPermission;
       }),
-      catchError((err) => throwError(err)),
+      catchError((err) => {
+        throw new UnauthorizedException();
+      }),
     );
   }
 }

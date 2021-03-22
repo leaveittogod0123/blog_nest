@@ -21,7 +21,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     this.logger.debug(
       `
       ${this.constructor.name}.catch() works
-      request url:${JSON.stringify(request.url)}`,
+      request url:${JSON.stringify(request.url)}
+      `,
     );
     const status =
       exception instanceof HttpException
