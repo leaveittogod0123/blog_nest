@@ -69,7 +69,7 @@ export class UserController {
   @ApiOperation({ summary: '회원 목록 조회 API' })
   @ApiOkResponse({ type: [PaginationDto] })
   findAll(@Query() queryParam): Promise<PaginationDto | any> {
-    return this.userService.findAll(queryParam?.cursor);
+    return this.userService.findAll(queryParam);
     // .pipe(catchError((err) => of({ error: err.message })));
   }
 

@@ -89,18 +89,25 @@ export class UserService {
     );
   }
 
-  async findAll(cursor?): Promise<PaginationDto> {
+  async findAll(queryParam): Promise<PaginationDto> {
     const connection = getConnection();
     const queryRunner = connection.createQueryRunner();
     const conditions: string[] = [];
-    if (cursor) {
+    if (queryParam?.beforeCursor) {
       conditions.push(
-        `AND CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) >= '${cursor}'`,
+        `AND CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) >= '${queryParam?.beforeCursor}'`,
+      );
+    }
+
+    if (queryParam?.afterCursor) {
+      conditions.push(
+        `AND CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) <= '${queryParam?.afterCursor}'`,
       );
     }
 
     const query = `SELECT id, name, username, email, role, CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) as custom_cursor
     FROM user WHERE 1=1 ${conditions.join()}
+    ORDER BY CONCAT(LPAD(id,10,'0'), LPAD(username,10,'0')) DESC
     LIMIT 3`;
     try {
       const result = await queryRunner.query(query);

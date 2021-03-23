@@ -17,7 +17,7 @@ import { PassportModule } from '@nestjs/passport';
     }),
     forwardRef(() => UserModule),
     JwtModule.registerAsync({
-      imports: [ConfigModule],
+      // imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
         return {
