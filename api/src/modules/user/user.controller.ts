@@ -17,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { of } from 'rxjs';
 import { Observable } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { JwtAuthGuard } from 'src/modules/auth/jwt-guard';
 import { hasRoles } from 'src/modules/auth/role.decorator';
 import { RolesGuard } from 'src/modules/auth/roles.guard';

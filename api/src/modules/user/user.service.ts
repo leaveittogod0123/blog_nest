@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { from, throwError } from 'rxjs';
 import { Observable } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { getConnection, Repository, Transaction } from 'typeorm';
 import { User } from './user.entity';
@@ -114,7 +114,7 @@ export class UserService {
         if (user) {
           return this.authService
             .generateJWT(user)
-            .pipe(map((jwt: string) => jwt));
+            .pipe(tap((jwt: string) => jwt));
         } else {
           return 'Wrong Credentials';
         }
@@ -124,8 +124,8 @@ export class UserService {
 
   validateUser(email: string, password: string): Observable<UserDto> {
     return this.findByMail(email).pipe(
-      switchMap((user: UserDto) =>
-        this.authService.comparePassword(password, user.password).pipe(
+      switchMap((user: UserDto) => {
+        return this.authService.comparePassword(password, user.password).pipe(
           map((match: boolean) => {
             if (match) {
               return user;
@@ -133,8 +133,8 @@ export class UserService {
               throw Error;
             }
           }),
-        ),
-      ),
+        );
+      }),
     );
   }
 
